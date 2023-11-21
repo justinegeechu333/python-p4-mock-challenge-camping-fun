@@ -29,27 +29,11 @@ class Activity(db.Model, SerializerMixin):
     signups = relationship ('Signup',
                                back_populates = 'activity',
                                cascade = 'all, delete-orphan')
-    signup_camper = association_proxy('signups', 'campers')
+    signup_camper = association_proxy('signups', 'camper')
     
     
     def __repr__(self):
         return f'<Activity {self.id}: {self.name}, {self.difficulty}>'
-    
-    def as_dict(self, field_names = []):
-        ret = {
-            'id': self.id,
-            'name': self.name,
-            'difficulty': self.difficulty
-        }
-        if 'signups' in field_names:
-            field_names_clone = field_names[:]
-            field_names_clone.remove("signups")
-            ret['signups'] = [
-                signup.as_dict(field_names_clone)
-                for signup in self.signups
-            ]
-        return ret
-
 
 
 class Camper(db.Model, SerializerMixin):
@@ -66,21 +50,6 @@ class Camper(db.Model, SerializerMixin):
         cascade = 'all, delete-orphan'
     )
     activities = association_proxy('signups', 'activity')
-    
-    def as_dict(self, field_names = []):
-        ret = { 
-            'id': self.id,
-            'name': self.name,
-            'age': self.age,
-        }
-        if 'signups' in field_names:
-            field_names_clone = field_names[:]
-            field_names_clone.remove("signups")
-            ret['signups'] = [
-                signup.as_dict(field_names_clone)
-                for signup in self.signups
-            ]
-        return ret
     
     @validates('name')
     def validate_name(self, key, new_name):
@@ -121,24 +90,5 @@ class Signup(db.Model, SerializerMixin):
     
     def __repr__(self):
         return f'<Signup {self.id}, {self.time}, {self.activity_id}, {self.camper_id}>'
-    
-    def as_dict(self, field_names=[]):
-        ret = {
-            'id': self.id,
-            'time': self.time,
-            'camper_id': self.camper_id,
-            'activity_id': self.activity_id
-        }
-        if 'camper' in field_names:
-            field_names_clone = field_names[:]
-            field_names_clone.remove('camper')
-            ret['camper'] = self.camper.as_dict(field_names_clone)
-        if 'activity' in field_names:
-            field_names_clone = field_names[:]
-            field_names_clone.remove('activity')
-            ret['activity'] = self.activity.as_dict(field_names_clone)
-            
-        return ret
-
-
+   
 # add any models you may need.

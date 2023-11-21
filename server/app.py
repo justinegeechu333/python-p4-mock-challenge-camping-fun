@@ -29,7 +29,7 @@ def home():
 def route_campers():
     if request.method =='GET':
         campers = [
-            camper.to_dict()
+            camper.to_dict(rules=('-signups',))
             for camper
             in Camper.query.all()
         ]
@@ -47,52 +47,73 @@ def route_campers():
         db.session.add(new_camper)
         db.session.commit()
         
-        camper_dict = {'id': new_camper.id, 
-                       'name': new_camper.name, 
-                       'age': new_camper.age}
+        # camper_dict = {'id': new_camper.id, 
+        #                'name': new_camper.name, 
+        #                'age': new_camper.age}
         
-        return make_response(camper_dict, 201)
+        return make_response(new_camper.to_dict(), 201)
+
+    return make_response({}, 401)
         
 @app.route('/campers/<int:id>', methods = ['GET', 'PATCH', 'DELETE'])
 def route_campers_by_id(id):
-    camper = Camper.query.get(id)
-    if not camper:
+    try:
+        camper = db.session.execute(
+            db.select(Camper).filter_by(id=id)
+        ).scalar_one()
+        if request.method == 'GET':
+            return make_response(camper.to_dict(rules=('signups', 'activities')), 200)
+        if request.method == 'DELETE':
+            db.session.delete(camper)
+            db.session.commit()
+            return make_response(camper.to_dict(), 204)
+        if request.method == 'PATCH':
+            params = request.json
+            if not params["name"] or not params ["age"]:
+                return make_response({'errors':["validation errors"]}, 400)
+            if params["age"] < 8 or params["age"] > 18:
+                return make_response({'errors': ["validation errors"]}, 400)
+            
+            for attr in params:
+                setattr(camper, attr, params[attr])
+            db.session.commit()
+            return make_response(camper.to_dict(), 202)
+    except:
         return make_response({'error': "Camper not found"}, 404)
+    # camper = Camper.query.get(id)
+    # if not camper:
+    #     return make_response({'error': "Camper not found"}, 404)
     
-    if request.method == 'GET':
-        return make_response(camper.to_dict(rules=('signups', 'activities')), 200)
-    
-    if request.method == 'PATCH':
-        params = request.json
-        if not params["name"] or not params ["age"]:
-            return make_response({'errors':["validation errors"]}, 400)
-        if params["age"] < 8 or params["age"] > 18:
-            return make_response({'errors': ["validation errors"]}, 400)
-        
-        for attr in params:
-            setattr(camper, attr, params[attr])
-        db.session.commit()
-        return make_response(camper.to_dict(), 202)
-    
+    return make_response({}, 401)
     
     
 @app.route('/activities')
 def route_activities():
+    # `activities = Activity.query.all()` is retrieving all the activities from the database using the
+    # `query.all()` method. It returns a list of all the activity objects in the database.
     activities = Activity.query.all()
     return make_response([activity.to_dict() for activity in activities], 200)
+    
 
 @app.route('/activities/<int:id>', methods=["DELETE"])
 def route_delete_activities(id):
-    if request.method == 'DELETE':
-        activity = Activity.query.get(id)
-        if not activity:
+        # activity = Activity.query.get(id)
+        try:
+            activity = db.session.execute(
+                db.select(Activity).filter_by(id=id)
+            ).scalar_one()
+            # if not activity:
+            #     return make_response({
+            #         "error": "Activity not found"
+            #     }, 404)
+            db.session.delete(activity)
+            db.session.commit()
+            return make_response({}, 204)
+        except:
             return make_response({
                 "error": "Activity not found"
                 }, 404)
-        db.session.delete(activity)
-        db.session.commit()
-        return make_response({}, 204)
-    return make_response({}, 200)
+
 
 @app.route('/signups', methods=['POST'])
 def route_signup():

@@ -50,6 +50,22 @@ function Home() {
         ))}
       </ul>
       <hr />
+      <Campers campers={campers} setCampers={setCampers} />
+      <hr />
+      <NewCamper onAddCamper={handleAddCamper} />
+    </div>
+  );
+}
+
+const Campers = ({ campers, setCampers }) => {
+  function deleteCamper(id) {
+    fetch(`/campers/${id}`, { method: "DELETE" }).then((r) => {
+      const new_campers = campers.filter((c) => c.id !== id);
+      setCampers(new_campers);
+    });
+  }
+  return (
+    <>
       <h2>Campers</h2>
       <ul>
         {campers.map((camper) => (
@@ -57,14 +73,12 @@ function Home() {
             <span>
               {camper.name}, age {camper.age}
             </span>
+            <button onClick={() => deleteCamper(camper.id)}>delete</button>
             <Link to={`/campers/${camper.id}`}>View Activities</Link>
           </li>
         ))}
       </ul>
-      <hr />
-      <NewCamper onAddCamper={handleAddCamper} />
-    </div>
+    </>
   );
-}
-
+};
 export default Home;
